@@ -1,0 +1,13 @@
+---
+- name: install samba package
+  tags: samba, file
+  package:
+    name: samba
+    state: latest
+
+- name: start and enable samba
+  tags: samba, file
+  service:
+    name: smb
+    state: started
+    enabled: true

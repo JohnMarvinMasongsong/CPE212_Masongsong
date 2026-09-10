@@ -13,7 +13,7 @@
     state: latest
   when: ansible_distribution == "Ubuntu"
 
-- name: "Mariadb Restart/Enabling"
+- name: "Mariadb - Restarting/Enabling"
   tags: db, mariadb
   service:
     name: mariadb
