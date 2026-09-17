@@ -1,0 +1,99 @@
+---
+- name: Install Nagios dependencies
+  ansible.builtin.dnf:
+    name:
+      - autoconf
+      - gcc
+      - glibc
+      - glibc-common
+      - make
+      - wget
+      - unzip
+      - httpd
+      - php
+      - gd
+      - gd-devel
+      - openssl
+      - openssl-devel
+      - tar
+    state: present
+
+- name: Create Nagios group
+  ansible.builtin.group:
+    name: nagios
+    state: present
+
+- name: Create Nagios user
+  ansible.builtin.user:
+    name: nagios
+    group: nagios
+    state: present
+
+- name: Add apache to Nagios group
+  ansible.builtin.user:
+    name: apache
+    groups: nagios
+    append: yes
+
+- name: Download Nagios Core
+  ansible.builtin.get_url:
+    url: https://github.com/NagiosEnterprises/nagioscore/archive/refs/tags/nagios-4.5.14.tar.gz
+    dest: /tmp/nagioscore.tar.gz
+
+- name: Extract Nagios Core
+  ansible.builtin.unarchive:
+    src: /tmp/nagioscore.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Find Nagios source directory
+  ansible.builtin.shell: "find /tmp -maxdepth 1 -type d -name 'nagioscore-nagios-*' | head -1"
+  register: nagios_dir
+  changed_when: false
+
+- name: Configure Nagios
+  ansible.builtin.command:
+    cmd: ./configure --with-httpd-conf=/etc/httpd/conf.d
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Compile Nagios
+  ansible.builtin.command:
+    cmd: make all
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Install Nagios
+  ansible.builtin.command:
+    cmd: make install
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Install Nagios command mode
+  ansible.builtin.command:
+    cmd: make install-commandmode
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Install Nagios configuration
+  ansible.builtin.command:
+    cmd: make install-config
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Install Nagios web configuration
+  ansible.builtin.command:
+    cmd: make install-webconf
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Install Nagios daemon
+  ansible.builtin.command:
+    cmd: make install-daemoninit
+    chdir: "{{ nagios_dir.stdout }}"
+
+- name: Start Apache
+  ansible.builtin.systemd_service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: Start Nagios
+  ansible.builtin.systemd_service:
+    name: nagios
+    state: started
+    enabled: yes
