@@ -56,7 +56,7 @@
 
 - name: Configure Nagios
   ansible.builtin.command:
-    cmd: ./configure --with-httpd-conf=/etc/apache2/sites-enabled
+    cmd: ./configure --with-httpd-conf=/etc/apache2/conf-available
     chdir: "{{ nagios_dir.stdout }}"
 
 - name: Compile Nagios
@@ -83,6 +83,11 @@
   ansible.builtin.command:
     cmd: make install-webconf
     chdir: "{{ nagios_dir.stdout }}"
+
+- name: Create Nagios web authentication file
+  ansible.builtin.command:
+    cmd: htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin ProwiththeDark
+    creates: /usr/local/nagios/etc/htpasswd.users
 
 - name: Enable Apache rewrite module
   ansible.builtin.command:

@@ -47,7 +47,7 @@
     remote_src: yes
 
 - name: Find Nagios source directory
-  ansible.builtin.shell: "find /tmp -maxdepth 1 -type d -name 'nagioscore-nagios-*' | head -1"
+  ansible.builtin.shell: "find /tmp -maxdepth 1 -type d -name 'nagioscore-nagios-4.5.14'"
   register: nagios_dir
   changed_when: false
 
@@ -81,16 +81,34 @@
     cmd: make install-webconf
     chdir: "{{ nagios_dir.stdout }}"
 
+- name: Create Nagios web authentication file
+  ansible.builtin.command:
+    cmd: htpasswd -bc /usr/local/nagios/etc/htpasswd.users nagiosadmin ProwiththeDark
+    creates: /usr/local/nagios/etc/htpasswd.users
+
 - name: Install Nagios daemon
   ansible.builtin.command:
     cmd: make install-daemoninit
     chdir: "{{ nagios_dir.stdout }}"
+
+- name: Configure firewall
+  ansible.builtin.command:
+    cmd: firewall-cmd --permanent --add-service=http
+
+- name: Reload firewalld
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
 
 - name: Start Apache
   ansible.builtin.systemd_service:
     name: httpd
     state: started
     enabled: yes
+
+- name: Restart Apache
+  ansible.builtin.systemd_service:
+    name: httpd
+    state: restarted
 
 - name: Start Nagios
   ansible.builtin.systemd_service:
